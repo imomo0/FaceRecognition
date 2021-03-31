@@ -17,7 +17,10 @@ async function startVideo() {
     stream => video.srcObject = stream,
     err => console.error(err)
   )
-//}
+
+  //http://rapport.bodo.kommune.no/rh_dg15_fullsize.htm
+
+
 
 video.addEventListener('play', () => {
   const canvas = faceapi.createCanvasFromMedia(video)
@@ -29,29 +32,17 @@ video.addEventListener('play', () => {
     const resizedDetections = faceapi.resizeResults(detections, displaySize)
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
     faceapi.draw.drawDetections(canvas, resizedDetections)
-    //faceapi.draw.drawFaceLandmarks(canvas, resizedDetections)
-    //faceapi.draw.drawFaceExpressions(canvas, resizedDetections)
-    //console.log(faceMatcher);
+
+    // Finner match
     const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor))
     
-    
+    // Skriver match
     results.forEach((result, i) => {
       const box = resizedDetections[i].detection.box
       const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() })
+      if(result.toString().includes("unknown") !== true) console.log(`Funnet person: ${result.toString()}`)
       drawBox.draw(canvas)
     })
-
-/*
-    resizedDetections.forEach( detection => {
-      let gender = "";
-      if(detection.gender === "male") gender = "mann";
-      if(detection.gender === "female") gender = "kvinne";
-      const box = detection.detection.box
-      const drawBox = new faceapi.draw.DrawBox(box, { label: Math.round(detection.age) + " år gammel " + gender })
-      drawBox.draw(canvas)
-      console.log(detection.age)
-    })
-    */
   }, 100)
 })
 }
