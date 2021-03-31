@@ -57,14 +57,14 @@ video.addEventListener('play', () => {
 }
 
 function loadLabeledImages() {
-  const labels = ['kjell-ivar','karin']
+  const labels = ['kjell-ivar', 'karin']
   return Promise.all(
     labels.map(async label => {
       const descriptions = []
       for (let i = 1; i <= 23; i++) {
         const img = await faceapi.fetchImage(`https://raw.githubusercontent.com/imomo0/FaceRecognition/master/picture/faces/${label}/${i}.jpg`)
         const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor()
-        descriptions.push(detections.descriptor)
+        if(detections !== undefined) descriptions.push(detections.descriptor)
       }
 
       return new faceapi.LabeledFaceDescriptors(label, descriptions)
