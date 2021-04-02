@@ -1,4 +1,14 @@
+
 const video = document.getElementById('video')
+
+const Http = new XMLHttpRequest();
+const url='http://localhost:1880/test';
+Http.open("GET", url);
+Http.send();
+
+Http.onreadystatechange = (e) => {
+  console.log(Http.responseText)
+}
 
 Promise.all([
   faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
@@ -26,7 +36,11 @@ video.addEventListener('play', () => {
   const canvas = faceapi.createCanvasFromMedia(video)
   document.body.append(canvas)
   const displaySize = { width: video.width, height: video.height }
-  faceapi.matchDimensions(canvas, displaySize)
+  faceapi.matchDimensions(canvas, displaySize);
+  let seenArray = [];
+  let nextReset = 0;
+  const timeReset = 2000;
+
   setInterval(async () => {
     const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors()
     const resizedDetections = faceapi.resizeResults(detections, displaySize)
@@ -36,13 +50,33 @@ video.addEventListener('play', () => {
     // Finner match
     const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor))
     
+    // Timestamp
+    var d = new Date();
+    var n = d.getTime();
+
     // Skriver match
     results.forEach((result, i) => {
       const box = resizedDetections[i].detection.box
       const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() })
-      if(result.toString().includes("unknown") !== true) console.log(`Funnet person: ${result.toString()}`)
+      if(result.toString().includes("unknown") !== true) 
+      {
+        var name = result.toString().substring(0, result.toString().indexOf(' '));
+        nextReset = n + timeReset;
+
+        if(seenArray.includes(name) !== true)
+        {  
+          seenArray.push(name);
+          sendHttpResult(name);
+        }
+      }
       drawBox.draw(canvas)
+
     })
+    if(seenArray.length !== 0 && n > nextReset)
+    {
+      seenArray = [];
+      sendHttpResult("");
+    }
   }, 100)
 })
 }
@@ -61,4 +95,15 @@ function loadLabeledImages() {
       return new faceapi.LabeledFaceDescriptors(label, descriptions)
     })
   )
+}
+
+function sendHttpResult(name) {
+  const Http = new XMLHttpRequest();
+  const url='http://localhost:1880/test';
+  Http.open("POST", url);
+  Http.send(JSON.stringify({ "key": "hvem","value": name }));
+
+  Http.onreadystatechange = (e) => {
+    console.log(Http.responseText)
+  }
 }
