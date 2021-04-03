@@ -1,14 +1,9 @@
 
 const video = document.getElementById('video')
 
-const Http = new XMLHttpRequest();
-const url='http://localhost:1880/test';
-Http.open("GET", url);
-Http.send();
+let arr = ["hvem", "outdoor_temp", "test"];
 
-Http.onreadystatechange = (e) => {
-  console.log(Http.responseText)
-}
+httpGET("http://localhost:1880/global", "arr");
 
 Promise.all([
   faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
@@ -20,16 +15,15 @@ Promise.all([
 ]).then(startVideo)
 
 async function startVideo() {
+
   const labeledFaceDescriptors = await loadLabeledImages()
   const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.6)
+  console.log(labeledFaceDescriptors);
   navigator.getUserMedia(
     { video: {} },
     stream => video.srcObject = stream,
     err => console.error(err)
   )
-
-  //http://rapport.bodo.kommune.no/rh_dg15_fullsize.htm
-
 
 
 video.addEventListener('play', () => {
@@ -66,7 +60,7 @@ video.addEventListener('play', () => {
         if(seenArray.includes(name) !== true)
         {  
           seenArray.push(name);
-          sendHttpResult(name);
+          httpPOST("hvem",name);
         }
       }
       drawBox.draw(canvas)
@@ -75,35 +69,53 @@ video.addEventListener('play', () => {
     if(seenArray.length !== 0 && n > nextReset)
     {
       seenArray = [];
-      sendHttpResult("");
+      httpPOST("hvem","");
     }
   }, 100)
 })
 }
 
-function loadLabeledImages() {
+async function loadLabeledImages() {
   const labels = ['kjell-ivar', 'karin']
   return Promise.all(
     labels.map(async label => {
       const descriptions = []
-      for (let i = 1; i <= 23; i++) {
+      for (let i = 1; i <= 2; i++) {
         const img = await faceapi.fetchImage(`https://raw.githubusercontent.com/imomo0/FaceRecognition/master/picture/faces/${label}/${i}.jpg`)
         const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor()
         if(detections !== undefined) descriptions.push(detections.descriptor)
       }
-
-      return new faceapi.LabeledFaceDescriptors(label, descriptions)
+      let loadedLables = new faceapi.LabeledFaceDescriptors(label, descriptions)
+      return loadedLables
     })
   )
 }
 
-function sendHttpResult(name) {
+function httpPOST(key, value) {
   const Http = new XMLHttpRequest();
-  const url='http://localhost:1880/test';
+  const url='http://localhost:1880/global';
   Http.open("POST", url);
-  Http.send(JSON.stringify({ "key": "hvem","value": name }));
+  Http.send(JSON.stringify({ "key": key,"value": value }));
 
   Http.onreadystatechange = (e) => {
     console.log(Http.responseText)
   }
+}
+
+function httpGET(url, params, func) {
+  const Http = new XMLHttpRequest();
+  let urlParam = "";
+  
+  if(params !== undefined && typeof params !== "string")
+  {
+      urlParam += url + "?";
+      params.forEach(param => {
+      urlParam += param +"&";
+      })
+  }
+  else urlParam = url + "?" + params;
+  Http.open("GET", urlParam);
+  Http.send();
+  Http.onreadystatechange = func
+
 }
