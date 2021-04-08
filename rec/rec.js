@@ -14,6 +14,7 @@ Promise.all([
   faceapi.nets.ageGenderNet.loadFromUri('/models')
 ]).then(startVideo)
 
+
 async function startVideo() {
 
   const labeledFaceDescriptors = await loadLabeledImages()
